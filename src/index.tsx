@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { App } from "./app";
+import { getInstalledHarnesses, supportedHarnessBinaries } from "./installed-harnesses";
 
 const HELP = `
   🎰 slotslop — spin for your harness / model / effort
@@ -13,6 +14,7 @@ const HELP = `
   press ⏎ or space to stop each reel, left to right.
   the harness you land on restricts which models can appear,
   and the model restricts which effort levels can appear.
+  only harnesses with installed CLI binaries on PATH are shown.
   on the results screen, ⏎ runs the rolled command, esc leaves.
 `;
 
@@ -39,9 +41,18 @@ async function main(): Promise<void> {
     process.exit(0);
   }
   const prompt = args.join(" ").trim() || "do something cool";
+  const harnesses = getInstalledHarnesses();
+
+  if (harnesses.length === 0) {
+    process.stderr.write(
+      "\n  slotslop could not find any supported harness CLIs on PATH.\n" +
+        `  Expected one of: ${supportedHarnessBinaries().join(", ")}\n\n`,
+    );
+    process.exit(1);
+  }
 
   const renderer = await createCliRenderer({ exitOnCtrlC: true });
-  createRoot(renderer).render(<App prompt={prompt} onExit={onExit} />);
+  createRoot(renderer).render(<App prompt={prompt} harnesses={harnesses} onExit={onExit} />);
 }
 
 main();

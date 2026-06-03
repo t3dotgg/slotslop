@@ -1,7 +1,7 @@
 import { createTextAttributes, RGBA, type BoxRenderable, type CliRenderer, type KeyEvent } from "@opentui/core";
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react";
 import { useEffect, useReducer, useRef, type ReactNode } from "react";
-import { HARNESSES, EFFORTS } from "./data";
+import { EFFORTS, type HarnessDef } from "./data";
 import { SlotEngine, type Column } from "./engine";
 import { Confetti, THEMES } from "./confetti";
 import { Shockwaves, SHOCK_DUR, SHOCK_MAXR } from "./shockwave";
@@ -24,16 +24,25 @@ const IDX = {
 };
 
 const ACTIVE_TITLE = "▸ HARNESS ◂";
-const MAX_LABEL = Math.max(
-  ACTIVE_TITLE.length,
-  ...HARNESSES.map((h) => h.label.length),
-  ...HARNESSES.flatMap((h) => h.models.map((m) => m.label.length)),
-  ...EFFORTS.map((e) => e.length),
-);
-const CONTENT_W = MAX_LABEL + 2;
-const REEL_W = CONTENT_W + 4;
 const GAP = 2;
-const MACHINE_W = REEL_W * 3 + GAP * 2;
+
+interface MachineMetrics {
+  contentW: number;
+  reelW: number;
+  machineW: number;
+}
+
+function machineMetrics(harnesses: readonly HarnessDef[]): MachineMetrics {
+  const maxLabel = Math.max(
+    ACTIVE_TITLE.length,
+    ...harnesses.map((h) => h.label.length),
+    ...harnesses.flatMap((h) => h.models.map((m) => m.label.length)),
+    ...EFFORTS.map((e) => e.length),
+  );
+  const contentW = maxLabel + 2;
+  const reelW = contentW + 4;
+  return { contentW, reelW, machineW: reelW * 3 + GAP * 2 };
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function payline(label: string, w: number): string {
@@ -137,11 +146,15 @@ function Reel({
   active,
   done,
   boxRef,
+  contentW,
+  reelW,
 }: {
   col: Column;
   active: boolean;
   done: boolean;
   boxRef: (el: BoxRenderable | null) => void;
+  contentW: number;
+  reelW: number;
 }) {
   const L = col.labels.length;
   const at = (o: number) => col.labels[(col.idx + o + L * 8) % L]!;
@@ -153,7 +166,7 @@ function Reel({
   const borderColor = stopped ? IDX.green : IDX.dimGray;
 
   return (
-    <box style={{ flexDirection: "column", width: REEL_W, flexShrink: 0 }}>
+    <box style={{ flexDirection: "column", width: reelW, flexShrink: 0 }}>
       <Centered>
         <text attributes={titleAttr}>{title}</text>
       </Centered>
@@ -161,7 +174,7 @@ function Reel({
         {REEL_ROWS.map((o) =>
           o === 0 ? (
             <text key={o} fg={IDX.black} bg={barBg} attributes={A.bold}>
-              {payline(at(0), CONTENT_W)}
+              {payline(at(0), contentW)}
             </text>
           ) : (
             <Centered key={o}>
@@ -256,11 +269,20 @@ function ConfettiLayer({ confetti, w, h }: { confetti: Confetti; w: number; h: n
   );
 }
 
-export function App({ prompt, onExit }: { prompt: string; onExit: (cmd: string | null, run: boolean) => void }) {
+export function App({
+  prompt,
+  harnesses,
+  onExit,
+}: {
+  prompt: string;
+  harnesses: readonly HarnessDef[];
+  onExit: (cmd: string | null, run: boolean) => void;
+}) {
   const renderer = useRenderer();
   const { width, height } = useTerminalDimensions();
-  const engineRef = useRef<SlotEngine>(undefined as unknown as SlotEngine);
-  if (!engineRef.current) engineRef.current = new SlotEngine();
+  const metrics = machineMetrics(harnesses);
+  const engineRef = useRef<SlotEngine | null>(null);
+  if (!engineRef.current) engineRef.current = new SlotEngine(harnesses);
   const engine = engineRef.current;
 
   const confettiRef = useRef<Confetti>(undefined as unknown as Confetti);
@@ -390,14 +412,14 @@ export function App({ prompt, onExit }: { prompt: string; onExit: (cmd: string |
   return (
     <>
       <box style={{ flexDirection: "column", padding: 1 }}>
-        <Centered width={MACHINE_W}>
+        <Centered width={metrics.machineW}>
           <Rainbow text="🎰   S L O T - S L O P   🎰" phase={p} />
         </Centered>
-        <Centered width={MACHINE_W}>
+        <Centered width={metrics.machineW}>
           <text attributes={A.dim}>task: {prompt}</text>
         </Centered>
         <box style={{ height: 1 }} />
-        <MarqueeBar width={MACHINE_W} phase={p} hue={moodHue} />
+        <MarqueeBar width={metrics.machineW} phase={p} hue={moodHue} />
         <box style={{ height: 1 }} />
 
         <box style={{ flexDirection: "row", gap: GAP }}>
@@ -407,6 +429,8 @@ export function App({ prompt, onExit }: { prompt: string; onExit: (cmd: string |
               col={col}
               active={i === engine.active}
               done={engine.done}
+              contentW={metrics.contentW}
+              reelW={metrics.reelW}
               boxRef={(el) => {
                 boxRefs.current[i] = el;
               }}
@@ -415,7 +439,7 @@ export function App({ prompt, onExit }: { prompt: string; onExit: (cmd: string |
         </box>
 
         <box style={{ height: 1 }} />
-        <MarqueeBar width={MACHINE_W} phase={p + 0.5} hue={moodHue} />
+        <MarqueeBar width={metrics.machineW} phase={p + 0.5} hue={moodHue} />
         <box style={{ height: 1 }} />
 
         {engine.done && cmd && outcome ? (

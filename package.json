@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "start": "bun run src/index.tsx",
+    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "tsc --noEmit"
   },

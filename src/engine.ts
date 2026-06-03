@@ -1,7 +1,6 @@
 // Pure slot-machine state. No rendering — the UI layer reads `cols`/`done` and
 // calls `tick()` each frame and `press()` on keypress.
 import {
-  HARNESSES,
   EFFORTS,
   type Effort,
   type HarnessDef,
@@ -24,10 +23,10 @@ export interface Column {
 const STOP_AT = 7; // higher = longer wind-down
 const rand = (n: number) => Math.floor(Math.random() * n);
 
-const allModelLabels = (): string[] => {
+const allModelLabels = (harnesses: readonly HarnessDef[]): string[] => {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const h of HARNESSES)
+  for (const h of harnesses)
     for (const m of h.models)
       if (!seen.has(m.id)) {
         seen.add(m.id);
@@ -48,10 +47,14 @@ export class SlotEngine {
   private modelPool: ModelDef[] = [];
   private effortPool: Effort[] = EFFORTS;
 
-  constructor() {
+  constructor(private readonly harnesses: readonly HarnessDef[]) {
+    if (harnesses.length === 0) {
+      throw new Error("SlotEngine needs at least one harness");
+    }
+
     this.cols = [
-      this.mk("harness", "HARNESS", HARNESSES.map((h) => h.label)),
-      this.mk("model", "MODEL", allModelLabels()),
+      this.mk("harness", "HARNESS", harnesses.map((h) => h.label)),
+      this.mk("model", "MODEL", allModelLabels(harnesses)),
       this.mk("effort", "EFFORT", [...EFFORTS]),
     ];
   }
@@ -86,7 +89,7 @@ export class SlotEngine {
   private onStop(i: number): void {
     const col = this.cols[i]!;
     if (col.kind === "harness") {
-      this.selectedHarness = HARNESSES[col.idx]!;
+      this.selectedHarness = this.harnesses[col.idx]!;
       this.modelPool = this.selectedHarness.models;
       const m = this.cols[1]!;
       m.labels = this.modelPool.map((x) => x.label);

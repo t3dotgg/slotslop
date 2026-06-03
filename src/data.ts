@@ -100,6 +100,8 @@ const hasReasoning = (e: Effort): boolean => e !== "no-reasoning";
 export interface HarnessDef {
   id: string;
   label: string;
+  /** Executable this harness uses when launched. Must be present on PATH. */
+  binary: string;
   models: ModelDef[];
   buildCommand: (model: ModelDef, effort: Effort, prompt: string) => string;
 }
@@ -109,6 +111,7 @@ export const HARNESSES: HarnessDef[] = [
   {
     id: "claude-code",
     label: "Claude Code",
+    binary: "claude",
     models: models("sonnet-4.6", "haiku-4.6", "opus-4.8"),
     // claude is interactive by default (a positional prompt seeds the session).
     // --effort is a real flag (low|medium|high|xhigh|max); omit it for no-reasoning.
@@ -120,6 +123,7 @@ export const HARNESSES: HarnessDef[] = [
   {
     id: "codex",
     label: "Codex",
+    binary: "codex",
     models: models("gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex-spark"),
     buildCommand: (m, e, p) => {
       const effort = hasReasoning(e)
@@ -132,6 +136,7 @@ export const HARNESSES: HarnessDef[] = [
   {
     id: "opencode",
     label: "OpenCode",
+    binary: "opencode",
     // Multi-provider — supports everything.
     models: models(
       "sonnet-4.6",
@@ -154,6 +159,7 @@ export const HARNESSES: HarnessDef[] = [
   {
     id: "pi",
     label: "Pi",
+    binary: "pi",
     models: models(
       "sonnet-4.6",
       "haiku-4.6",
@@ -169,6 +175,7 @@ export const HARNESSES: HarnessDef[] = [
   {
     id: "antigravity",
     label: "Antigravity CLI",
+    binary: "agy",
     models: models("gemini-3.1-pro", "gemini-3.5-flash"),
     // bound as `agy`; new + lightly documented, so no speculative effort flag
     buildCommand: (m, _e, p) => `agy -m ${m.id} ${q(p)}`,
@@ -176,6 +183,7 @@ export const HARNESSES: HarnessDef[] = [
   {
     id: "cursor",
     label: "Cursor CLI",
+    binary: "cursor-agent",
     // Curated multi-provider selection.
     models: models("sonnet-4.6", "opus-4.8", "gpt-5.5", "gpt-5.4", "gemini-3.1-pro"),
     // interactive session (no `-p` print mode); cursor-agent uses --model, no effort flag
