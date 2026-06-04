@@ -171,7 +171,7 @@ export const HARNESSES: HarnessDef[] = [
     label: "Antigravity CLI",
     models: models("gemini-3.1-pro", "gemini-3.5-flash"),
     // bound as `agy`; new + lightly documented, so no speculative effort flag
-    buildCommand: (m, _e, p) => `agy -m ${m.id} ${q(p)}`,
+    buildCommand: (m, _e, p) => `agy -p ${m.id} ${q(p)}`,
   },
   {
     id: "cursor",
