@@ -23,5 +23,5 @@ if (typeof process.versions.bun === "string") {
     );
     process.exit(1);
   }
-  process.exit(res.status ?? 0);
+  process.exit(res.status ?? 1);
 }
